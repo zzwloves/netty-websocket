@@ -1,0 +1,4 @@
+Manifest-Version: 1.0
+Netty-Version: 4.1.22.Final
+Jackson-Version: 2.8.8
+Java-version: 1.8

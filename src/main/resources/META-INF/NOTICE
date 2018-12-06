@@ -1,0 +1,5 @@
+使用注意：
+1、创建WebSocket服务端并开启：
+    new WebScoketServer(port, path, WebSocketHandler).start()
+2、创建WebSocket客户端并开启：
+    new WebScoketServer(url, header, WebSocketHandler).start()
