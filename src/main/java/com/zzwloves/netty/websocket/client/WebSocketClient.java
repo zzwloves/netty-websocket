@@ -1,7 +1,6 @@
 package com.zzwloves.netty.websocket.client;
 
 import java.net.URI;
-import java.util.concurrent.*;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -14,8 +13,6 @@ import io.netty.util.AttributeKey;
 
 import com.zzwloves.netty.websocket.WebSocketSession;
 import com.zzwloves.netty.websocket.handler.WebSocketHandler;
-import io.netty.util.concurrent.Future;
-import io.netty.util.concurrent.GenericFutureListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

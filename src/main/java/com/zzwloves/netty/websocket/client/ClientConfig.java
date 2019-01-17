@@ -32,14 +32,6 @@ class ClientConfig {
 		this.channelHandlers = channelHandlers;
 	}
 
-//	public String getUrl() {
-//		return url;
-//	}
-//
-//	public void setUrl(String url) {
-//		this.url = url;
-//	}
-
 	public URI getUri() {
 		return uri;
 	}
