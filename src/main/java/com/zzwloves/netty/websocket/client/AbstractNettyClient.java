@@ -1,6 +1,5 @@
 package com.zzwloves.netty.websocket.client;
 
-import com.zzwloves.netty.websocket.handler.WebSocketHandler;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -10,6 +9,10 @@ import io.netty.handler.codec.http.HttpClientCodec;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.URI;
 
 /**
  * netty 客户端
@@ -18,33 +21,66 @@ import io.netty.handler.logging.LoggingHandler;
  * @param <T>
  */
 abstract class AbstractNettyClient<T> implements NettyClient<T> {
-	
-	protected Bootstrap bootstrap;
-	protected ChannelFuture channelFuture;
-	protected ClientConfig clientConfig;
+
+	private static Logger logger = LoggerFactory.getLogger(AbstractNettyClient.class);
+
+	private Bootstrap bootstrap;
+	private NioEventLoopGroup group;
+	private ChannelFuture channelFuture;
+	private ClientConfig clientConfig;
 	private ClientType clientType;
-	
+
 	public AbstractNettyClient(ClientConfig clientConfig, ClientType clientType) {
 		this.clientConfig = clientConfig;
 		this.clientType = clientType;
-		createClient();
+		prepare();
 	}
 
-	protected void createClient() {
-		EventLoopGroup group=new NioEventLoopGroup();
+	protected void prepare() {
+		group = new NioEventLoopGroup();
 		bootstrap = new Bootstrap();
 		bootstrap.option(ChannelOption.SO_KEEPALIVE, true)
 				.option(ChannelOption.TCP_NODELAY, true)
-				.option(ChannelOption.SO_BACKLOG, 1024*1024*10)
 				.group(group)
-				.handler(new LoggingHandler(LogLevel.INFO))
 				.channel(NioSocketChannel.class)
 				.handler(new ChannelInitializer<SocketChannel>() {
 					@Override
 					protected void initChannel(SocketChannel socketChannel) throws Exception {
-						socketChannel.pipeline().addLast(clientConfig.getChannelHandlers());
+						ChannelPipeline pipeline = socketChannel.pipeline();
+						pipeline.addLast("loghingHandler", new LoggingHandler(LogLevel.ERROR));
+						pipeline.addLast("httpClientCodec", new HttpClientCodec());
+						pipeline.addLast("httpObjectAggregator", new HttpObjectAggregator(1024 * 1024 * 10));
+						for (ChannelHandler channelHandler : clientConfig.getChannelHandlers()) {
+							String simpleName = channelHandler.getClass().getSimpleName();
+							String name = simpleName.substring(0, 1).toLowerCase() + simpleName.substring(1);
+							pipeline.addLast(name, channelHandler);
+						}
 					}
 				});
+	}
+
+	protected void connect() throws InterruptedException {
+		if (channelFuture == null || !channelFuture.channel().isActive()) {
+			synchronized (this.getClass()) {
+				if (channelFuture == null || !channelFuture.channel().isActive()) {
+					URI uri = clientConfig.getUri();
+					int port = uri.getPort() == -1 ? 80 : uri.getPort();
+					channelFuture = bootstrap.connect(uri.getHost(), port).sync().addListener(future -> logger.info("连接上服务器"));
+				}
+			}
+		}
+	}
+
+	public ChannelFuture getChannelFuture() {
+		return channelFuture;
+	}
+
+	public ClientConfig getClientConfig() {
+		return clientConfig;
+	}
+
+	public ClientType getClientType() {
+		return clientType;
 	}
 
 
@@ -52,32 +88,7 @@ abstract class AbstractNettyClient<T> implements NettyClient<T> {
 		return bootstrap;
 	}
 
-	public void setBootstrap(Bootstrap bootstrap) {
-		this.bootstrap = bootstrap;
+	public NioEventLoopGroup getGroup() {
+		return group;
 	}
-
-	public ChannelFuture getChannelFuture() {
-		return channelFuture;
-	}
-
-	public void setChannelFuture(ChannelFuture channelFuture) {
-		this.channelFuture = channelFuture;
-	}
-
-	public ClientConfig getClientConfig() {
-		return clientConfig;
-	}
-
-	public void setClientConfig(ClientConfig clientConfig) {
-		this.clientConfig = clientConfig;
-	}
-
-	public ClientType getClientType() {
-		return clientType;
-	}
-
-	public void setClientType(ClientType clientType) {
-		this.clientType = clientType;
-	}
-
 }

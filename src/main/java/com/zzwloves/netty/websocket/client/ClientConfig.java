@@ -5,6 +5,9 @@ import io.netty.handler.codec.http.HttpHeaders;
 
 import com.zzwloves.netty.websocket.handler.NettyHandler;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+
 /**
  * 客户端配置类
  * @author zhengwei.zhu
@@ -12,25 +15,37 @@ import com.zzwloves.netty.websocket.handler.NettyHandler;
  */
 class ClientConfig {
 	
-	private String url;
+	private URI uri;
 	private HttpHeaders headers;
 	private NettyHandler nettyHandler;
-	private ChannelHandler[] channelHandlers;
+	private SharableChannelHandler[] channelHandlers;
 	
-	public ClientConfig(String url, HttpHeaders headers, NettyHandler nettyHandler, ChannelHandler... channelHandlers) {
+	public ClientConfig(String url, HttpHeaders headers, NettyHandler nettyHandler, SharableChannelHandler... channelHandlers) {
 		super();
-		this.url = url;
+		try {
+			this.uri = new URI(url);
+		} catch (URISyntaxException e) {
+			e.printStackTrace();
+		}
 		this.headers = headers;
 		this.nettyHandler = nettyHandler;
 		this.channelHandlers = channelHandlers;
 	}
 
-	public String getUrl() {
-		return url;
+//	public String getUrl() {
+//		return url;
+//	}
+//
+//	public void setUrl(String url) {
+//		this.url = url;
+//	}
+
+	public URI getUri() {
+		return uri;
 	}
-	
-	public void setUrl(String url) {
-		this.url = url;
+
+	public void setUri(URI uri) {
+		this.uri = uri;
 	}
 
 	public HttpHeaders getHeaders() {
@@ -53,7 +68,7 @@ class ClientConfig {
 		return channelHandlers;
 	}
 
-	public void setChannelHandlers(ChannelHandler[] channelHandlers) {
+	public void setChannelHandlers(SharableChannelHandler[] channelHandlers) {
 		this.channelHandlers = channelHandlers;
 	}
 }

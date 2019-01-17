@@ -7,5 +7,5 @@ package com.zzwloves.netty.websocket.client;
  */
 public interface NettyClient<T> {
 
-	T start() throws Exception;
+	void start() throws Exception;
 }
