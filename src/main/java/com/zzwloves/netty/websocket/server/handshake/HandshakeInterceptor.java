@@ -1,8 +1,9 @@
 package com.zzwloves.netty.websocket.server.handshake;
 
-import java.util.Map;
-
+import com.zzwloves.netty.websocket.ServerHttpRequest;
 import com.zzwloves.netty.websocket.handler.WebSocketHandler;
+
+import java.util.Map;
 
 /**
  * 握手拦截器
@@ -14,12 +15,13 @@ public interface HandshakeInterceptor {
 	/**
 	 * 握手前
 	 * @author zhengwei.zhu
+	 * @param serverHttpRequest
 	 * @param wsHandler
 	 * @param attributes
 	 * @return
 	 * @throws Exception
 	 */
-	boolean beforeHandshake(WebSocketHandler wsHandler, Map<String, Object> attributes) throws Exception;
+	boolean beforeHandshake(ServerHttpRequest serverHttpRequest, WebSocketHandler wsHandler, Map<String, Object> attributes) throws Exception;
 
 	/**
 	 * 握手后

@@ -1,7 +1,7 @@
 package com.zzwloves.netty.websocket.client;
 
-import java.net.URI;
-
+import com.zzwloves.netty.websocket.WebSocketSession;
+import com.zzwloves.netty.websocket.handler.WebSocketHandler;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.handler.codec.http.DefaultHttpHeaders;
@@ -9,12 +9,10 @@ import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.websocketx.WebSocketClientHandshaker;
 import io.netty.handler.codec.http.websocketx.WebSocketClientHandshakerFactory;
 import io.netty.handler.codec.http.websocketx.WebSocketVersion;
-import io.netty.util.AttributeKey;
-
-import com.zzwloves.netty.websocket.WebSocketSession;
-import com.zzwloves.netty.websocket.handler.WebSocketHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.net.URI;
 
 /**
  * WebSocket 客户端
@@ -73,12 +71,12 @@ public class WebSocketClient extends AbstractNettyClient<WebSocketSession> {
 		return (WebSocketHandler) getClientConfig().getNettyHandler();
 	}
 
-	public WebSocketSession getWebSocketSession() {
-		ChannelFuture channelFuture = getChannelFuture();
-		if (channelFuture == null) {
-			throw new RuntimeException("未先调用start方法后");
-		}
-		return (WebSocketSession) getChannelFuture().channel().attr(AttributeKey.valueOf("webSocketSession")).get();
-	}
+//	public WebSocketSession getWebSocketSession() {
+//		ChannelFuture channelFuture = getChannelFuture();
+//		if (channelFuture == null) {
+//			throw new RuntimeException("未先调用start方法后");
+//		}
+//		return (WebSocketSession) getChannelFuture().channel().attr(AttributeKey.valueOf("webSocketSession")).get();
+//	}
 
 }

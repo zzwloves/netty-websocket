@@ -1,37 +1,25 @@
 package com.zzwloves.netty.websocket.server;
 
-import java.net.InetSocketAddress;
-import java.net.URI;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
+import com.zzwloves.netty.websocket.ServerHttpRequest;
 import com.zzwloves.netty.websocket.WebSocketSession;
 import com.zzwloves.netty.websocket.adapter.StandardWebSocketSession;
 import com.zzwloves.netty.websocket.handler.WebSocketHandler;
 import com.zzwloves.netty.websocket.server.handshake.HandshakeInterceptor;
 import com.zzwloves.netty.websocket.server.handshake.HandshakeInterceptorChain;
-
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelPromise;
-import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.handler.codec.http.DefaultFullHttpResponse;
-import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.HttpHeaderNames;
-import io.netty.handler.codec.http.HttpHeaders;
-import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.handler.codec.http.HttpUtil;
-import io.netty.handler.codec.http.HttpVersion;
-import io.netty.handler.codec.http.QueryStringDecoder;
+import io.netty.channel.*;
+import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http.websocketx.WebSocketServerHandshaker;
 import io.netty.handler.codec.http.websocketx.WebSocketServerHandshakerFactory;
 import io.netty.util.AttributeKey;
 import io.netty.util.CharsetUtil;
+
+import java.net.InetSocketAddress;
+import java.net.URI;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 /**
  * WebSocket 服务握手处理类
@@ -84,26 +72,26 @@ class WebSocketServerHandShakeHandler extends SimpleChannelInboundHandler<FullHt
 		URI uri = new URI(webSocketURL);
 		ctx.channel().attr(AttributeKey.valueOf("URI")).set(uri);
 		
-		// 构造握手工厂
-		WebSocketServerHandshakerFactory wsFactory = new WebSocketServerHandshakerFactory(
-				webSocketURL, null, false);
-		
+		ServerHttpRequest serverHttpRequest = new ServerHttpRequest(uri, req.headers(), req.protocolVersion(), req.method());
 		// 握手拦截
 		HandshakeInterceptorChain interceptorChain = this.serverConfig.getInterceptorChain();
 		HandshakeInterceptor[] interceptors = interceptorChain.getInterceptors();
 		for (HandshakeInterceptor interceptor : interceptors) {
-			boolean beforeHandshake = interceptor.beforeHandshake(webSocketHandler, attributes);
+			boolean beforeHandshake = interceptor.beforeHandshake(serverHttpRequest, webSocketHandler, attributes);
 			if (!beforeHandshake) {
 				throw new RuntimeException("没通过握手拦截！！");
 			}
 		}
-		
+
 		// 解决部分苹果浏览器版本过低，WebSocket协议过旧造成无法连接问题、
 		String secWebSocketExtensions = headers.get("Sec-WebSocket-Extensions");
-		if (secWebSocketExtensions == null || !secWebSocketExtensions.contains("permessage-deflate")) {			
+		if (secWebSocketExtensions == null || !secWebSocketExtensions.contains("permessage-deflate")) {
 			headers.set("Sec-WebSocket-Extensions","permessage-deflate");
 		}
-		
+
+		// 构造握手工厂
+		WebSocketServerHandshakerFactory wsFactory = new WebSocketServerHandshakerFactory(
+				webSocketURL, null, false);
 		// 创建握手
 		WebSocketServerHandshaker handshaker = wsFactory.newHandshaker(req);
 		if (handshaker == null) {
