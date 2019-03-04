@@ -7,8 +7,6 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.HttpClientCodec;
 import io.netty.handler.codec.http.HttpObjectAggregator;
-import io.netty.handler.logging.LogLevel;
-import io.netty.handler.logging.LoggingHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,11 +26,9 @@ abstract class AbstractNettyClient<T> implements NettyClient<T> {
 	private NioEventLoopGroup group;
 	private ChannelFuture channelFuture;
 	private ClientConfig clientConfig;
-	private ClientType clientType;
 
-	public AbstractNettyClient(ClientConfig clientConfig, ClientType clientType) {
+	public AbstractNettyClient(ClientConfig clientConfig) {
 		this.clientConfig = clientConfig;
-		this.clientType = clientType;
 		prepare();
 	}
 
@@ -47,7 +43,7 @@ abstract class AbstractNettyClient<T> implements NettyClient<T> {
 					@Override
 					protected void initChannel(SocketChannel socketChannel) throws Exception {
 						ChannelPipeline pipeline = socketChannel.pipeline();
-						pipeline.addLast("loghingHandler", new LoggingHandler(LogLevel.ERROR));
+//						pipeline.addLast("loggingHandler", new LoggingHandler(LogLevel.ERROR));
 						pipeline.addLast("httpClientCodec", new HttpClientCodec());
 						pipeline.addLast("httpObjectAggregator", new HttpObjectAggregator(1024 * 1024 * 10));
 						for (ChannelHandler channelHandler : clientConfig.getChannelHandlers()) {
@@ -79,16 +75,4 @@ abstract class AbstractNettyClient<T> implements NettyClient<T> {
 		return clientConfig;
 	}
 
-	public ClientType getClientType() {
-		return clientType;
-	}
-
-
-	public Bootstrap getBootstrap() {
-		return bootstrap;
-	}
-
-	public NioEventLoopGroup getGroup() {
-		return group;
-	}
 }

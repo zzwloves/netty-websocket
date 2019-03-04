@@ -1,5 +1,7 @@
 package com.zzwloves.netty.websocket.client;
 
+import java.util.concurrent.Future;
+
 /**
  * @author zhengwei.zhu
  * @version <b>1.0.0</b>
@@ -7,5 +9,5 @@ package com.zzwloves.netty.websocket.client;
  */
 public interface NettyClient<T> {
 
-	void start() throws Exception;
+	Future<T> start() throws Exception;
 }

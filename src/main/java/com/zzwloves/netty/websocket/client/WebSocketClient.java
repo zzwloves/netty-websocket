@@ -9,10 +9,12 @@ import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.websocketx.WebSocketClientHandshaker;
 import io.netty.handler.codec.http.websocketx.WebSocketClientHandshakerFactory;
 import io.netty.handler.codec.http.websocketx.WebSocketVersion;
+import io.netty.util.AttributeKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
+import java.util.concurrent.*;
 
 /**
  * WebSocket 客户端
@@ -22,39 +24,52 @@ import java.net.URI;
 public class WebSocketClient extends AbstractNettyClient<WebSocketSession> {
 
 	private static Logger logger = LoggerFactory.getLogger(WebSocketClient.class);
+
+	private CountDownLatch latch = new CountDownLatch(1);
 	
 	public WebSocketClient(String url, HttpHeaders headers, WebSocketHandler webSocketHandler) {
 		this(new ClientConfig(url, headers, webSocketHandler,
 				new WebSocketClientHandShakeHandler(webSocketHandler),
-				new WebSocketClientMessageHandler(webSocketHandler)),
-				ClientType.WEBSOCKET_CLIENT);
+				new WebSocketClientMessageHandler(webSocketHandler)));
 	}
 	
-	private WebSocketClient(ClientConfig clientConfig, ClientType clientType) {
-		super(clientConfig, clientType);
+	private WebSocketClient(ClientConfig clientConfig) {
+		super(clientConfig);
 	}
 	
 	@Override
-	public void start() throws Exception {
-		connect();
-		ChannelFuture channelFuture = getChannelFuture();
-		Channel channel = channelFuture.channel();
-		ClientConfig clientConfig = getClientConfig();
-		HttpHeaders httpHeaders = clientConfig.getHeaders() != null ? clientConfig.getHeaders() : new DefaultHttpHeaders();
-		// 进行握手
-		WebSocketClientHandshaker handshaker = WebSocketClientHandshakerFactory.newHandshaker(
-				clientConfig.getUri(), WebSocketVersion.V13, (String)null, true, httpHeaders);
-		WebSocketClientHandShakeHandler handShakeHandler = channel.pipeline().get(WebSocketClientHandShakeHandler.class);
-		handShakeHandler.setHandshaker(handshaker);
-		handshaker.handshake(channel);
-		//阻塞等待是否握手成功
-		handShakeHandler.handshakeFuture().sync().addListener(future -> logger.info("握手成功"));
+	public Future<WebSocketSession> start() throws Exception {
+		ExecutorService executor = Executors.newFixedThreadPool(2);
+		executor.execute(() -> {
+			try {
+				connect();
+				ChannelFuture channelFuture = getChannelFuture();
+				Channel channel = channelFuture.channel();
+				ClientConfig clientConfig = getClientConfig();
+				HttpHeaders httpHeaders = clientConfig.getHeaders() != null ? clientConfig.getHeaders() : new DefaultHttpHeaders();
+				// 进行握手
+				WebSocketClientHandshaker handshaker = WebSocketClientHandshakerFactory.newHandshaker(
+						clientConfig.getUri(), WebSocketVersion.V13, (String)null, true, httpHeaders);
+				WebSocketClientHandShakeHandler handShakeHandler = channel.pipeline().get(WebSocketClientHandShakeHandler.class);
+				handShakeHandler.setHandshaker(handshaker);
+				handshaker.handshake(channel);
+				//阻塞等待是否握手成功
+				handShakeHandler.handshakeFuture().sync().addListener(future -> logger.info("握手成功"));
 
-		handShakeHandler.webSocketSesssionFuture().sync();
+				handShakeHandler.webSocketSesssionFuture().sync().addListener(future -> latch.countDown());
 
-		// 这里会一直等待，直到socket被关闭
-		channel.closeFuture().sync().addListener(future -> {
-			logger.error("连接已断开");
+				// 这里会一直等待，直到socket被关闭
+				channel.closeFuture().sync().addListener(future -> logger.error("连接已断开"));
+			} catch (InterruptedException e) {
+				throw new RuntimeException("连接失败，异常：", e);
+			} finally {
+				latch.countDown();
+			}
+		});
+
+		return executor.submit(() -> {
+			latch.await();
+			return (WebSocketSession) getChannelFuture().channel().attr(AttributeKey.valueOf("webSocketSession")).get();
 		});
 	}
 
@@ -71,12 +86,16 @@ public class WebSocketClient extends AbstractNettyClient<WebSocketSession> {
 		return (WebSocketHandler) getClientConfig().getNettyHandler();
 	}
 
-//	public WebSocketSession getWebSocketSession() {
-//		ChannelFuture channelFuture = getChannelFuture();
-//		if (channelFuture == null) {
-//			throw new RuntimeException("未先调用start方法后");
-//		}
-//		return (WebSocketSession) getChannelFuture().channel().attr(AttributeKey.valueOf("webSocketSession")).get();
-//	}
+	public void stop() throws InterruptedException {
+		ChannelFuture channelFuture = getChannelFuture();
+		if (channelFuture == null) {
+			if (!latch.await(30, TimeUnit.SECONDS)) {
+				throw new RuntimeException("客户端未运行或正在开启中，不允许进行关闭操作");
+			}
+		}
+		if (channelFuture != null) {
+			getChannelFuture().channel().close().sync();
+		}
+	}
 
 }
