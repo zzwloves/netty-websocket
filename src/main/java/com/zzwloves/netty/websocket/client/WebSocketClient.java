@@ -34,42 +34,6 @@ public class WebSocketClient extends AbstractNettyClient<WebSocketSession> {
 	private WebSocketClient(ClientConfig clientConfig) {
 		super(clientConfig);
 	}
-	
-//	@Override
-//	public Future<WebSocketSession> start() throws Exception {
-//		ExecutorService executor = Executors.newFixedThreadPool(2);
-//		executor.execute(() -> {
-//			try {
-//				connect();
-//				ChannelFuture channelFuture = getChannelFuture();
-//				Channel channel = channelFuture.channel();
-//				ClientConfig clientConfig = getClientConfig();
-//				HttpHeaders httpHeaders = clientConfig.getHeaders() != null ? clientConfig.getHeaders() : new DefaultHttpHeaders();
-//				// 进行握手
-//				WebSocketClientHandshaker handshaker = WebSocketClientHandshakerFactory.newHandshaker(
-//						clientConfig.getUri(), WebSocketVersion.V13, (String)null, true, httpHeaders);
-//				WebSocketClientHandShakeHandler handShakeHandler = channel.pipeline().get(WebSocketClientHandShakeHandler.class);
-//				handShakeHandler.setHandshaker(handshaker);
-//				handshaker.handshake(channel);
-//				//阻塞等待是否握手成功
-//				handShakeHandler.handshakeFuture().sync().addListener(future -> logger.info("握手成功"));
-//
-//				handShakeHandler.webSocketSesssionFuture().sync().addListener(future -> latch.countDown());
-//
-//				// 这里会一直等待，直到socket被关闭
-//				channel.closeFuture().sync().addListener(future -> logger.error("连接已断开"));
-//			} catch (InterruptedException e) {
-//				throw new RuntimeException("连接失败，异常：", e);
-//			} finally {
-//				latch.countDown();
-//			}
-//		});
-//
-//		return executor.submit(() -> {
-//			latch.await();
-//			return (WebSocketSession) getChannelFuture().channel().attr(AttributeKey.valueOf("webSocketSession")).get();
-//		});
-//	}
 
 	@Override
 	public void handShake() throws InterruptedException {
