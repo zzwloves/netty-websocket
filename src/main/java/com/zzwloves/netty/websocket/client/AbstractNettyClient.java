@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
+import java.util.concurrent.*;
 
 /**
  * netty 客户端
@@ -26,6 +27,8 @@ abstract class AbstractNettyClient<T> implements NettyClient<T> {
 	private NioEventLoopGroup group;
 	private ChannelFuture channelFuture;
 	private ClientConfig clientConfig;
+
+	protected CountDownLatch latch = new CountDownLatch(1);
 
 	public AbstractNettyClient(ClientConfig clientConfig) {
 		this.clientConfig = clientConfig;
@@ -55,6 +58,26 @@ abstract class AbstractNettyClient<T> implements NettyClient<T> {
 				});
 	}
 
+	@Override
+	public Future<T> start() throws Exception {
+		ExecutorService executor = Executors.newFixedThreadPool(2);
+		executor.execute(() -> {
+			try {
+				connect();
+				handShake();
+			} catch (InterruptedException e) {
+				throw new RuntimeException("连接失败，异常：", e);
+			} finally {
+				latch.countDown();
+			}
+		});
+
+		return executor.submit(() -> {
+			latch.await();
+			return future();
+		});
+	}
+
 	protected void connect() throws InterruptedException {
 		if (channelFuture == null || !channelFuture.channel().isActive()) {
 			synchronized (this.getClass()) {
@@ -66,6 +89,10 @@ abstract class AbstractNettyClient<T> implements NettyClient<T> {
 			}
 		}
 	}
+
+	public abstract void handShake() throws InterruptedException;
+
+	public abstract T future();
 
 	public ChannelFuture getChannelFuture() {
 		return channelFuture;
