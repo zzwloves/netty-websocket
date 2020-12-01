@@ -69,6 +69,7 @@
         <developerConnection>scm:git:ssh://github.com/zzwloves/netty-websocket.git</developerConnection>
         <url>https://github.com/zzwloves/netty-websocket/tree/master</url>
     </scm>
+
     <!-- 开发者信息 -->
     <developers>
         <developer>
